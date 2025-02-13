@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Mareas</title>
+    <style>
+        .simulator-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+
+        .title {
+            text-align: center;
+            color: #1a365d;
+            margin-bottom: 20px;
+        }
+
+        .slider-container {
+            margin: 20px 0;
+            padding: 0 20px;
+        }
+
+        .slider-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: #e5e7eb;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #4F46E5;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .svg-container {
+            background: #1a1a2e;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .info-panels {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .info-panel {
+            background: #f0f7ff;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .legend-panel {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .panel-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #1a365d;
+        }
+
+        @media (max-width: 640px) {
+            .info-panels {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="simulator-container">
+        <h2 class="title">Simulador de Mareas Lunares y Solares</h2>
+        
+        <div class="slider-container">
+            <div class="slider-info">
+                <span>Posición Lunar</span>
+                <span id="angle-value">0°</span>
+            </div>
+            <input type="range" min="0" max="360" value="0" id="lunar-slider">
+        </div>
+
+        <div class="svg-container">
+            <svg viewBox="0 0 400 400" style="width: 100%; height: 400px;">
+                <!-- Sol -->
+                <circle cx="350" cy="200" r="20" fill="#FFD700">
+                    <title>Sol</title>
+                </circle>
+                
+                <!-- Tierra -->
+                <circle cx="200" cy="200" r="30" fill="#4169E1">
+                    <title>Tierra</title>
+                </circle>
+                
+                <!-- Órbita lunar -->
+                <circle cx="200" cy="200" r="80" fill="none" stroke="#666" stroke-dasharray="2,2"/>
+                
+                <!-- Luna -->
+                <circle id="moon" cx="280" cy="200" r="15" fill="#D3D3D3">
+                    <title>Luna</title>
+                </circle>
+
+                <!-- Bulge de marea -->
+                <ellipse id="tide-bulge" cx="200" cy="200" rx="30" ry="30" fill="none" stroke="#87CEEB" stroke-width="2"/>
+            </svg>
+        </div>
+
+        <div class="info-panels">
+            <div class="info-panel">
+                <div class="panel-title">Estado Actual</div>
+                <p id="tide-type">Tipo: Marea Normal</p>
+                <p id="tide-force">Fuerza: 0%</p>
+            </div>
+            
+            <div class="legend-panel">
+                <div class="panel-title">Leyenda</div>
+                <p>🌞 Sol: Influencia gravitacional constante</p>
+                <p>🌎 Tierra: Centro del sistema</p>
+                <p>🌑 Luna: Determina el tipo de marea</p>
+                <p>🌊 Elipse: Deformación por mareas</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const slider = document.getElementById('lunar-slider');
+        const angleValue = document.getElementById('angle-value');
+        const moon = document.getElementById('moon');
+        const tideBulge = document.getElementById('tide-bulge');
+        const tideType = document.getElementById('tide-type');
+        const tideForce = document.getElementById('tide-force');
+
+        function calculateTideEffect(angle) {
+            const lunarEffect = Math.cos(angle * Math.PI / 180);
+            const solarEffect = 0.46;
+            return Math.abs(lunarEffect + solarEffect * Math.cos(angle * Math.PI / 180));
+        }
+
+        function getTideType(angle) {
+            angle = angle % 360;
+            if (angle <= 20 || (angle >= 160 && angle <= 200) || angle >= 340) {
+                return "Marea Viva (Spring Tide)";
+            } else if ((angle >= 70 && angle <= 110) || (angle >= 250 && angle <= 290)) {
+                return "Marea Muerta (Neap Tide)";
+            }
+            return "Marea Normal";
+        }
+
+        function updateSimulation() {
+            const angle = parseInt(slider.value);
+            
+            // Actualizar texto del ángulo
+            angleValue.textContent = `${angle}°`;
+            
+            // Actualizar posición de la Luna
+            const moonX = 200 + 80 * Math.cos(angle * Math.PI / 180);
+            const moonY = 200 + 80 * Math.sin(angle * Math.PI / 180);
+            moon.setAttribute('cx', moonX);
+            moon.setAttribute('cy', moonY);
+            
+            // Actualizar bulge de marea
+            const tideEffect = calculateTideEffect(angle);
+            tideBulge.setAttribute('rx', 30 + tideEffect * 10);
+            tideBulge.setAttribute('transform', `rotate(${angle}, 200, 200)`);
+            
+            // Actualizar información
+            tideType.textContent = `Tipo: ${getTideType(angle)}`;
+            tideForce.textContent = `Fuerza: ${(tideEffect * 100).toFixed(1)}%`;
+        }
+
+        slider.addEventListener('input', updateSimulation);
+        updateSimulation(); // Inicializar
+    </script>
+</body>
+</html>
